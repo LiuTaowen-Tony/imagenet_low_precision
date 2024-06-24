@@ -4,6 +4,7 @@ import torch.utils
 import torch.utils.data
 import pytorch_lightning as pl
 import torch
+import qtorch
 from torch.utils.data import DataLoader
 from torchvision.datasets import ImageNet
 from timm import create_model
@@ -13,7 +14,7 @@ import timm.scheduler
 import wandb
 from pytorch_lightning.loggers import WandbLogger
 from low_precision_utils import metrics as lp_metrics
-import math
+from low_precision_utils import utils as lp_utils
 
 torch.set_float32_matmul_precision("medium")
 
@@ -33,7 +34,16 @@ def get_args():
     parser.add_argument('--mixup_alpha', type=float, default=0.1, help='Mixup alpha value')
     parser.add_argument('--cutmix_alpha', type=float, default=1.0, help='Cutmix alpha value')
     parser.add_argument('--test_crop_ratio', type=float, default=0.95, help='Crop ratio for test images')
+    parser.add_argument("--act_man_width", type=int, default=1, help="Mantissa width for activation quantization")
+    parser.add_argument("--weight_man_width", type=int, default=1, help="Mantissa width for activation quantization")
+    parser.add_argument("--back_man_width", type=int, default=1, help="Mantissa width for activation quantization")
+    parser.add_argument("--act_rounding", type=str, default="stochastic", help="Rounding mode for activation quantization")
+    parser.add_argument("--weight_rounding", type=str, default="stochastic", help="Rounding mode for activation quantization")
+    parser.add_argument("--back_rounding", type=str, default="stochastic", help="Rounding mode for activation quantization")
+    parser.add_argument("--same_input", type=lambda x: (str(x).lower() == 'true'), default=True, help="Use the same input for all quantized layers")
+    parser.add_argument("--same_weight", type=lambda x: (str(x).lower() == 'true'), default=True, help="Use the same output for all quantized layers")
     return parser.parse_args()
+
 
 class ImageNetDataModule(pl.LightningDataModule):
     def __init__(self, args):
@@ -74,7 +84,20 @@ class LitModel(pl.LightningModule):
         super().__init__()
         self.args = args
         self.save_hyperparameters()
-        self.model = create_model("resnet50", pretrained=False, num_classes=1000)
+
+        model = create_model("resnet50", pretrained=False, num_classes=1000)
+        build_number = lambda x: qtorch.FloatingPoint(8, x)
+        quant_scheme = lp_utils.QuantScheme(
+            fnumber=build_number(args.act_man_width),
+            bnumber=build_number(args.back_man_width),
+            wnumber=build_number(args.weight_man_width),
+            fround_mode=args.act_rounding,
+            bround_mode=args.back_rounding,
+            wround_mode=args.weight_rounding,
+            same_input=args.same_input,
+            same_weight=args.same_weight
+        )
+        self.model = lp_utils.QuantWrapper(model, quant_scheme)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.mixup_fn = Mixup(
             mixup_alpha=args.mixup_alpha,
@@ -82,7 +105,6 @@ class LitModel(pl.LightningModule):
             label_smoothing=args.label_smoothing,
             num_classes=1000
         )
-        
 
     def forward(self, x):
         return self.model(x)
@@ -138,7 +160,8 @@ if __name__ == '__main__':
     data_module = ImageNetDataModule(args)
     model = LitModel(args)
     wandb_logger = WandbLogger(log_model=True, project="imagenet-training")
+    wandb_logger.log_hyperparams(args)
     wandb_logger.watch(model)
-    trainer = pl.Trainer(max_epochs=args.num_epochs, precision="bf16", accelerator="cuda", logger=wandb_logger)
+    trainer = pl.Trainer(max_epochs=args.num_epochs, accelerator="cuda", logger=wandb_logger)
     trainer.fit(model, datamodule=data_module)
     wandb.finish()
