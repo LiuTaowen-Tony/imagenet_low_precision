@@ -46,5 +46,6 @@ imagenet_data/
 wandb/
 imagenet-training/
 lightning_logs/
+imagenet_data
 
 
