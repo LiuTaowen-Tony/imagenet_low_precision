@@ -27,7 +27,7 @@ def get_args():
     parser.add_argument('--test_res', type=int, default=224, help='Resolution for test images')
     parser.add_argument('--batch_size', type=int, default=128, help='Batch size for training and validation')
     parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs to train')
-    parser.add_argument('--learning_rate', type=float, default=0.05, help='Initial learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.2, help='Initial learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-5, help='Weight decay for optimizer')
     parser.add_argument('--warmup_epochs', type=int, default=5, help='Number of warm-up epochs')
     parser.add_argument('--label_smoothing', type=float, default=0.0, help='Label smoothing')
@@ -42,9 +42,14 @@ def get_args():
     parser.add_argument("--back_rounding", type=str, default="stochastic", help="Rounding mode for activation quantization")
     parser.add_argument("--same_input", type=lambda x: (str(x).lower() == 'true'), default=True, help="Use the same input for all quantized layers")
     parser.add_argument("--same_weight", type=lambda x: (str(x).lower() == 'true'), default=True, help="Use the same output for all quantized layers")
+    parser.add_argument("--back_input_man_width", type=int,default=1)
+    parser.add_argument("--back_weight_man_width", type=int,default=1)
+    parser.add_argument("--back_input_rounding", type=str,default="stochastic")
+    parser.add_argument("--back_weight_rounding", type=str,default="stochastic")
     args =  parser.parse_args()
     args.learning_rate *= torch.cuda.device_count()
     return args
+    # return parser.parse_args()
 
 
 class ImageNetDataModule(pl.LightningDataModule):
@@ -97,7 +102,11 @@ class LitModel(pl.LightningModule):
             bround_mode=args.back_rounding,
             wround_mode=args.weight_rounding,
             same_input=args.same_input,
-            same_weight=args.same_weight
+            same_weight=args.same_weight,
+            bfnumber=build_number(args.back_input_man_width),
+            bwnumber=build_number(args.back_weight_man_width),
+            bfround_mode=args.back_input_rounding,
+            bwround_mode=args.back_weight_rounding
         )
         self.model = lp_utils.QuantWrapper(model, quant_scheme)
         self.criterion = torch.nn.CrossEntropyLoss()
