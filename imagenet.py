@@ -27,7 +27,7 @@ def get_args():
     parser.add_argument('--test_res', type=int, default=224, help='Resolution for test images')
     parser.add_argument('--batch_size', type=int, default=128, help='Batch size for training and validation')
     parser.add_argument('--num_epochs', type=int, default=100, help='Number of epochs to train')
-    parser.add_argument('--learning_rate', type=float, default=0.2, help='Initial learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.05, help='Initial learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-5, help='Weight decay for optimizer')
     parser.add_argument('--warmup_epochs', type=int, default=5, help='Number of warm-up epochs')
     parser.add_argument('--label_smoothing', type=float, default=0.0, help='Label smoothing')
