@@ -69,3 +69,4 @@ python imagenet.py \
   --back_input_man_width 3 --back_weight_man_width 3 \
   --back_input_rounding stochastic --back_weight_rounding stochastic \
   --same_input=False --same_weight=False
+

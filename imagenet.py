@@ -109,6 +109,7 @@ class LitModel(pl.LightningModule):
             bwround_mode=args.back_weight_rounding
         )
         self.model = lp_utils.QuantWrapper(model, quant_scheme)
+        print(self.model.module, flush=True)
         self.criterion = torch.nn.CrossEntropyLoss()
         self.mixup_fn = Mixup(
             mixup_alpha=args.mixup_alpha,
