@@ -5,5 +5,5 @@
 
 wget -c https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_val.tar  -P $1
 wget -c https://image-net.org/data/ILSVRC/2012/ILSVRC2012_img_train.tar -P $1
-wget -c https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar -P $1
+wget -c https://image-net.org/data/ILSVRC/2012/ILSVRC2012_devkit_t12.tar.gz -P $1
 

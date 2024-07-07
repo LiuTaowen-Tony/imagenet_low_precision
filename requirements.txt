@@ -58,3 +58,4 @@ urllib3==2.2.1
 wandb==0.17.0
 yarl==1.9.4
 ninja
+scipy
